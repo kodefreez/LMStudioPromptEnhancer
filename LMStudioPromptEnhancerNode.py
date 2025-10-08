@@ -31,8 +31,6 @@ class LMStudioPromptEnhancerNode:
             "optional": {
                 "target_model": (["Generic", "Pony", "Flux", "SDXL"],),
                 "prompt_tone": (["SFW", "NSFW"],),
-                "pony_tags": ("STRING", {"multiline": False, "default": "score_9, score_8_up, score_7_up, source_anime"}),
-                "sdxl_style": ("STRING", {"multiline": True, "default": "cinematic photo, 35mm film, professional, 4k, high resolution"}),
             }
         }
 
@@ -42,20 +40,23 @@ class LMStudioPromptEnhancerNode:
 
     CATEGORY = "LMStudio"
 
-    def generate_prompt(self, theme, subtheme, negative_prompt, style_preset, creativity, lmstudio_endpoint, model_identifier, seed, target_model="Generic", prompt_tone="SFW", pony_tags="", sdxl_style=""):
-        system_prompt = f'''You are an expert prompt engineer for a text-to-image AI. Your task is to take a user's theme and transform it into a detailed, rich, and artistic prompt.
+    def generate_prompt(self, theme, subtheme, negative_prompt, style_preset, creativity, lmstudio_endpoint, model_identifier, seed, target_model="Generic", prompt_tone="SFW"):
+        base_system_prompt = f'''You are an expert prompt engineer for a text-to-image AI. Your task is to take a user's theme and transform it into a detailed, rich, and artistic prompt.
 
 Follow these rules:
 1.  **Tone:** The generated prompt must be strictly '{prompt_tone}'.
 2.  **Structure:** Create a single, cohesive paragraph. Do not use lists or bullet points.
 3.  **Clarity and Detail:** Expand on the user's theme with specific, evocative details. Describe the scene, the subject, the lighting, and the atmosphere.
 4.  **Style Integration:** Seamlessly weave the chosen style preset into the prompt. For example, for 'Cinematic', use terms like 'dramatic lighting', 'wide-angle shot', 'film grain'. For 'Photorealistic', use camera settings like '4k, dslr, f/2.8'.
-5.  **Model-Specific Syntax:** Pay attention to the target model and apply its specific syntax.
-    *   **Pony:** Start the prompt with the provided Pony tags.
-    *   **SDXL:** Incorporate the detailed SDXL style information.
-    *   **Flux:** Focus on natural, descriptive language.
-    *   **Generic:** Create a high-quality, general-purpose prompt.
-6.  **Avoid Clutter:** Do not include negative prompts, instructions, or any meta-commentary. The output should only be the positive prompt itself.'''
+5.  **Avoid Clutter:** Do not include negative prompts, instructions, or any meta-commentary. The output should only be the positive prompt itself.'''
+
+        model_specific_instructions = ""
+        if target_model == "Pony":
+            model_specific_instructions = "\n6.  **Model-Specific Syntax:** You are generating a prompt for the Pony model. The prompt will be automatically prepended with quality and source tags."
+        elif target_model in ["Generic", "Flux", "SDXL"]:
+            model_specific_instructions = f"\n6.  **Model-Specific Syntax:** You are generating a prompt for the {target_model} model. The prompt will be automatically appended with a detailed style."
+        
+        system_prompt = base_system_prompt + model_specific_instructions
 
         user_message = f"Theme: '{theme}'"
         if subtheme:
@@ -64,11 +65,22 @@ Follow these rules:
         user_message += f"\nTarget Model: '{target_model}'"
         user_message += f"\nPrompt Tone: '{prompt_tone}'"
 
+        pony_tags = ""
+        if target_model == "Pony":
+            pony_tags = "score_9, score_8_up, score_7_up"
+            if style_preset == "Anime":
+                pony_tags += ", source_anime"
+            user_message += f"\n(The following Pony tags will be automatically added: '{pony_tags}')"
 
-        if target_model == "Pony" and pony_tags:
-            user_message += f"\nPony Tags: '{pony_tags}'"
-        if target_model == "SDXL" and sdxl_style:
-            user_message += f"\nSDXL Style: '{sdxl_style}'"
+        appended_style = ""
+        if target_model in ["Generic", "Flux", "SDXL"]:
+            photographic_style = "cinematic photo, 35mm film, professional, 4k, high resolution"
+            artistic_style = "masterpiece, best quality, absurdres, ultra-detailed, intricate details"
+            if style_preset in ["Photorealistic", "Cinematic"]:
+                appended_style = photographic_style
+            else:
+                appended_style = artistic_style
+            user_message += f"\n(The following style will be automatically appended: '{appended_style}')"
 
 
         headers = {"Content-Type": "application/json"}
@@ -90,12 +102,12 @@ Follow these rules:
             generated_prompt = json_response['choices'][0]['message']['content'].strip()
 
             # Prepend tags for Pony model
-            if target_model == "Pony" and pony_tags:
+            if target_model == "Pony":
                 generated_prompt = f"{pony_tags}, {generated_prompt}"
 
-            # Append style for SDXL model
-            if target_model == "SDXL" and sdxl_style:
-                generated_prompt = f"{generated_prompt}, {sdxl_style}"
+            # Append style for other models
+            if target_model in ["Generic", "Flux", "SDXL"]:
+                generated_prompt = f"{generated_prompt}, {appended_style}"
 
             # For now, we just pass the user's negative prompt through
             generated_negative_prompt = negative_prompt
