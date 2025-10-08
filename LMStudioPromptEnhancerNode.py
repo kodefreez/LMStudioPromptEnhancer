@@ -11,6 +11,7 @@ class LMStudioPromptEnhancerNode:
                 "style_preset": (["Cinematic", "Photorealistic", "Anime", "Fantasy Art", "Sci-Fi"], ),
                 "creativity": ("FLOAT", {"default": 0.7, "min": 0.1, "max": 2.0, "step": 0.1}),
                 "lmstudio_endpoint": ("STRING", {"multiline": False, "default": "http://localhost:1234/v1/chat/completions"}),
+                "model_identifier": ("STRING", {"multiline": False, "default": "local-model"}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             }
         }
@@ -21,7 +22,7 @@ class LMStudioPromptEnhancerNode:
 
     CATEGORY = "LMStudio"
 
-    def generate_prompt(self, theme, subtheme, negative_prompt, style_preset, creativity, lmstudio_endpoint, seed):
+    def generate_prompt(self, theme, subtheme, negative_prompt, style_preset, creativity, lmstudio_endpoint, model_identifier, seed):
         system_prompt = """You are an expert prompt engineer for a text-to-image AI. Your task is to take a user's theme and transform it into a detailed, rich, and artistic prompt.
 
 Follow these rules:
@@ -37,6 +38,7 @@ Follow these rules:
 
         headers = {"Content-Type": "application/json"}
         payload = {
+            "model": model_identifier,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}

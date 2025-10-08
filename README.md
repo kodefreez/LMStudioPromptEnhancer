@@ -8,6 +8,7 @@ A custom node for ComfyUI that connects to a local LM Studio instance to generat
 -   **Style Presets:** Quickly apply a specific style (e.g., Cinematic, Photorealistic, Anime) to your prompt.
 -   **Creativity Control:** Use a slider to adjust the LLM's temperature, balancing between predictable and highly creative outputs.
 -   **Direct LM Studio Integration:** Designed to work with the API endpoint of your local LM Studio server.
+-   **Model Selection:** Specify which model LM Studio should use via the `model_identifier` field.
 
 ## Installation
 
