@@ -28,3 +28,13 @@ A custom node for ComfyUI that connects to a local LM Studio instance to generat
 3.  Set your theme, style, and other options on the node.
 4.  Connect the `positive_prompt` output to your image generation node (e.g., KSampler).
 5.  Queue your prompt.
+
+## Testing
+
+This project uses Python's built-in `unittest` framework. Tests are located in the `tests/` directory.
+
+To run the tests, navigate to the root directory of the node (`LMStudio-Prompt-Enhancer`) and run the following command:
+
+```bash
+python -m unittest discover
+```
