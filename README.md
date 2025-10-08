@@ -11,16 +11,14 @@ A custom node for ComfyUI that connects to a local LM Studio instance to generat
 
 ## Installation
 
-1.  **Clone this repository:**
+1.  **Clone the repository into your `custom_nodes` folder:**
     ```bash
-    git clone <your-repo-url> ComfyUI/custom_nodes/LMStudio_Prompt_Enhancer
+    git clone https://github.com/conradstrydom/ComfyUI-LM-Studio-Prompt-Enhancer.git
     ```
-2.  **Install dependencies:**
-    Ensure you have the `requests` library installed in the Python environment used by ComfyUI.
-    ```bash
-    pip install requests
-    ```
-3.  **Restart ComfyUI.**
+    (Note: You may need to navigate to your `ComfyUI/custom_nodes` directory first)
+
+2.  **Restart ComfyUI.**
+    The required dependencies from `requirements.txt` will be installed automatically on startup.
 
 ## Usage
 
