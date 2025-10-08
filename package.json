@@ -1,0 +1,7 @@
+{
+    "name": "lmstudio-prompt-enhancer",
+    "version": "0.1.0",
+    "description": "A node to enhance prompts using LMStudio.",
+    "author": "",
+    "license": "MIT"
+}
