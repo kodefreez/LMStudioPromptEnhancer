@@ -1,5 +1,21 @@
 import requests
 
+import requests
+
+def get_lmstudio_models():
+    """Fetches the list of available models from a local LM Studio server."""
+    try:
+        response = requests.get("http://localhost:1234/api/v0/models", timeout=5)
+        response.raise_for_status()
+        models_data = response.json().get("data", [])
+        model_ids = [model['id'] for model in models_data]
+        return model_ids if model_ids else ["No models found"]
+    except requests.exceptions.RequestException:
+        return ["LM Studio not found at http://localhost:1234"]
+
+# Fetch the models when the script is loaded
+available_models = get_lmstudio_models()
+
 class LMStudioPromptEnhancerNode:
     @classmethod
     def INPUT_TYPES(s):
@@ -11,7 +27,7 @@ class LMStudioPromptEnhancerNode:
                 "style_preset": (["Cinematic", "Photorealistic", "Anime", "Fantasy Art", "Sci-Fi"], ),
                 "creativity": ("FLOAT", {"default": 0.7, "min": 0.1, "max": 2.0, "step": 0.1}),
                 "lmstudio_endpoint": ("STRING", {"multiline": False, "default": "http://localhost:1234/v1/chat/completions"}),
-                "model_identifier": ("STRING", {"multiline": False, "default": "local-model"}),
+                "model_identifier": (available_models, ),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             }
         }

@@ -5,3 +5,6 @@ __pycache__/
 # IDE configuration files
 .idea/
 .vscode/
+
+# AI Agent context folder
+.gemini/
