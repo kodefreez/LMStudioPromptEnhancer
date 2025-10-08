@@ -10,6 +10,12 @@ A custom node for ComfyUI that connects to a local LM Studio instance to generat
 -   **Direct LM Studio Integration:** Designed to work with the API endpoint of your local LM Studio server.
 -   **Model Selection:** Specify which model LM Studio should use via the `model_identifier` field.
 
+### Advanced Options
+
+-   **Target Model Selection:** Tailor the prompt generation for specific models like `Pony`, `Flux`, and `SDXL`. The node will automatically apply the correct syntax and prompting style for the selected model.
+-   **Pony-Specific Tags:** When using the `Pony` target model, you can provide custom `score_` and `source_` tags to guide the generation process.
+-   **SDXL-Specific Styles:** For the `SDXL` target model, you can add detailed photographic and artistic style information to achieve more precise results.
+
 ## Installation
 
 1.  **Clone the repository into your `custom_nodes` folder:**
@@ -26,8 +32,9 @@ A custom node for ComfyUI that connects to a local LM Studio instance to generat
 1.  Run your desired model in LM Studio and start the server.
 2.  In ComfyUI, add the **LM Studio Prompt Enhancer** node (found in the `LMStudio` category).
 3.  Set your theme, style, and other options on the node.
-4.  Connect the `positive_prompt` output to your image generation node (e.g., KSampler).
-5.  Queue your prompt.
+4.  (Optional) Select a `Target Model` from the advanced options and fill in any model-specific details.
+5.  Connect the `positive_prompt` output to your image generation node (e.g., KSampler).
+6.  Queue your prompt.
 
 ## Testing
 
