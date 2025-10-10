@@ -2,39 +2,66 @@
 
 A custom node for ComfyUI that connects to a local LM Studio instance to generate enriched, detailed prompts for image synthesis.
 
+This node is designed to be a creative partner, helping you discover surprising and complex results with minimal initial direction through features like the Concept Blender, Chaos Slider, and Mood Matrix.
+
 ## Features
 
--   **Theme-based Generation:** Start with a broad theme and let a local LLM expand it into a detailed prompt.
--   **Style Presets:** Quickly apply a specific style (e.g., Cinematic, Photorealistic, Anime) to your prompt.
--   **Creativity Control:** Use a slider to adjust the LLM's temperature, balancing between predictable and highly creative outputs.
--   **Direct LM Studio Integration:** Designed to work with the API endpoint of your local LM Studio server.
--   **Model Selection:** Specify which model LM Studio should use via the `model_identifier` field.
+-   **Concept Blender:** Creatively merge two different themes (`Theme A` and `Theme B`) using several blend modes (e.g., `A vs. B`, `A in the world of B`).
+-   **Chaos Slider:** Inject controlled randomness into your prompts to discover surprising and unexpected results.
+-   **Mood Matrix:** Guide the prompt's feeling along abstract axes like `Ancient <-> Futuristic` or `Serene <-> Chaotic`.
+-   **Subject-Specific Enhancement:** Tailor prompt generation for specific subjects like `People` with dedicated controls.
+-   **Model-Aware Output:** Automatically switches between detailed paragraphs and concise, comma-separated tags based on the target model (`SDXL`, `Pony`, etc.).
+-   **Direct LM Studio Integration:** Connects directly to your local LM Studio server API.
 
-### Advanced Options
+## Parameters
 
--   **Target Model Selection:** Tailor the prompt generation for specific models like `Pony`, `Flux`, and `SDXL`. The node will automatically apply the correct syntax and prompting style for the selected model.
--   **Pony-Specific Tags:** When using the `Pony` target model, you can provide custom `score_` and `source_` tags to guide the generation process.
--   **SDXL-Specific Styles:** For the `SDXL` target model, you can add detailed photographic and artistic style information to achieve more precise results.
+### Main Creative Controls
+
+-   `theme_a` / `theme_b`: The two core ideas you want to combine.
+-   `blend_mode`: Controls how `Theme A` and `Theme B` are combined.
+    -   `Simple Mix`: A creative mix of both themes.
+    -   `A vs. B`: Pits the themes against each other.
+    -   `A in the world of B`: Places Theme A in Theme B's environment.
+    -   `A made of B`: Constructs Theme A from the substance of Theme B.
+    -   `Style of A, Subject of B`: Applies the aesthetic of Theme A to the subject of Theme B.
+-   `style_preset`: Apply a general style to the prompt, such as `Cinematic`, `Photorealistic`, `Anime`, etc.
+-   `creativity`: Adjusts the LLM's temperature. Higher values lead to more creative and unpredictable prompts.
+
+### Advanced Controls
+
+-   `subject`: Choose the primary subject type to reveal specialized controls.
+    -   `Generic`: A general-purpose prompter for any theme.
+    -   `People`: Unlocks the fields below to give you fine-grained control over generating characters.
+-   `target_model`: Optimizes the prompt structure for specific models like `Pony`, `Flux`, and `SDXL`.
+-   `prompt_tone`: Sets the tone of the generated prompt (`SFW` or `NSFW`).
+
+### Fine-Tuning Sliders
+
+-   `chaos`: (0 to 10) Injects random keywords into your prompt from internal lists of materials, environments, and styles. The higher the value, the more wildcards are added.
+-   `mood_ancient_futuristic`: (-10 to 10) Pushes the mood towards `ancient` (negative) or `futuristic` (positive).
+-   `mood_serene_chaotic`: (-10 to 10) Pushes the mood towards `serene` (negative) or `chaotic` (positive).
+-   `mood_organic_mechanical`: (-10 to 10) Pushes the mood towards `organic` (negative) or `mechanical` (positive).
+
+### People Subject Options
+
+These options appear when `subject` is set to `People`. Each dropdown includes a `random` option to let the AI pick a creative choice for you.
+
+-   `action_pose`, `emotion_expression`, `lighting`, `framing`
 
 ## Installation
 
 1.  **Clone the repository into your `custom_nodes` folder:**
     ```bash
-    git clone https://github.com/conradstrydom/ComfyUI-LM-Studio-Prompt-Enhancer.git
+    git clone https://github.com/your-username/your-repo-name.git
     ```
-    (Note: You may need to navigate to your `ComfyUI/custom_nodes` directory first)
+    (You will need to update the URL once you have a public repository)
 
 2.  **Restart ComfyUI.**
     The required dependencies from `requirements.txt` will be installed automatically on startup.
 
-## Usage
+## How it Works
 
-1.  Run your desired model in LM Studio and start the server.
-2.  In ComfyUI, add the **LM Studio Prompt Enhancer** node (found in the `LMStudio` category).
-3.  Set your theme, style, and other options on the node.
-4.  (Optional) Select a `Target Model` from the advanced options and fill in any model-specific details.
-5.  Connect the `positive_prompt` output to your image generation node (e.g., KSampler).
-6.  Queue your prompt.
+The node constructs a detailed request for your local language model based on your inputs. The primary instruction is determined by the `blend_mode`, which tells the AI how to combine `Theme A` and `Theme B`. It then layers in details from the Mood Matrix, Chaos slider, and other settings. The final prompt structure (paragraph vs. tags) is determined by the `target_model`.
 
 ## Testing
 
@@ -45,3 +72,11 @@ To run the tests, navigate to the root directory of the node (`LMStudio-Prompt-E
 ```bash
 python -m unittest discover
 ```
+
+## Contributing
+
+Contributions are welcome! Please feel free to open an issue or submit a pull request.
+
+## License
+
+This project is licensed under the Apache 2.0 License. See the `LICENSE` file for details.

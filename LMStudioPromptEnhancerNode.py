@@ -1,4 +1,5 @@
 import requests
+import random
 
 def get_lmstudio_models():
     """Fetches the list of available models from a local LM Studio server."""
@@ -15,53 +16,212 @@ def get_lmstudio_models():
 available_models = get_lmstudio_models()
 
 class LMStudioPromptEnhancerNode:
+
+    """
+
+    A ComfyUI custom node that uses a local LM Studio instance to generate
+
+    and enhance prompts for text-to-image models. It includes several creative
+
+    tools like a Concept Blender, Chaos Slider, and Mood Matrix to facilitate
+
+    the discovery of novel and surprising visual ideas.
+
+    """
+
+    # WILDCARDS dictionary for the Chaos slider feature.
+
+    # These are randomly injected into the prompt when chaos > 0.
+
+    WILDCARDS = {
+
+        "materials": ["made of liquid metal", "made of crystal", "made of pure light", "carved from wood", "carved from stone", "woven from fabric", "mechanical and brass", "holographic", "ectoplasmic", "made of swirling galaxies"],
+
+        "environments": ["in a swirling vortex", "on a chrome-plated surface", "in a zero-gravity field", "under a binary sunset", "in a vaporwave dreamscape", "on a microscopic level", "in a post-apocalyptic wasteland", "in a serene zen garden", "inside a complex clockwork mechanism", "in an alien jungle"],
+
+        "styles": ["in the style of a 1980s Trapper Keeper", "as a medieval tapestry", "as a blueprint diagram", "as a thermal camera image", "as a stained glass window", "in the style of ukiyo-e", "as a child's crayon drawing", "as a propaganda poster", "in the style of art deco", "as a pixel art sprite"]
+
+    }
+
+
+
     @classmethod
+
     def INPUT_TYPES(s):
+
         return {
+
             "required": {
-                "theme": ("STRING", {"multiline": False, "default": "A majestic landscape"}),
-                "subtheme": ("STRING", {"multiline": False, "default": ""}),
+
+                "theme_a": ("STRING", {"multiline": False, "default": "a knight"}),
+
+                "theme_b": ("STRING", {"multiline": False, "default": "a dragon"}),
+
+                "blend_mode": (["Simple Mix", "A vs. B", "A in the world of B", "A made of B", "Style of A, Subject of B"],),
+
                 "negative_prompt": ("STRING", {"multiline": False, "default": ""}),
+
                 "style_preset": (["Cinematic", "Photorealistic", "Anime", "Fantasy Art", "Sci-Fi"], ),
+
                 "creativity": ("FLOAT", {"default": 0.7, "min": 0.1, "max": 2.0, "step": 0.1}),
+
                 "lmstudio_endpoint": ("STRING", {"multiline": False, "default": "http://localhost:1234/v1/chat/completions"}),
+
                 "model_identifier": (available_models, ),
+
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+
+                "subject": (["Generic", "People"],),
+
             },
+
             "optional": {
+
                 "target_model": (["Generic", "Pony", "Flux", "SDXL"],),
+
                 "prompt_tone": (["SFW", "NSFW"],),
+
+                "action_pose": (["default", "random", "standing", "sitting", "walking", "running", "jumping", "leaning against a wall", "looking over shoulder", "arms crossed", "hands in pockets", "dancing", "fighting stance", "crouching", "piloting a vehicle", "reading a book", "writing", "holding an object", "pointing", "reaching out", "adjusting glasses", "heroic pose"],),
+
+                "emotion_expression": (["default", "random", "neutral", "happy", "sad", "angry", "surprised", "joyful", "somber", "determined", "serene", "curious", "mischievous", "thoughtful", "focused", "confused", "afraid", "bored", "smirking", "crying", "laughing", "awe"],),
+
+                "lighting": (["default", "random", "cinematic", "dramatic", "soft", "studio", "backlit", "rim lighting", "golden hour", "blue hour", "moonlight", "neon glow", "volumetric", "Rembrandt", "split lighting", "high-key", "low-key", "hard lighting", "candlelight", "firelight", "natural light", "moody"],),
+
+                "framing": (["default", "random", "close-up", "medium shot", "full body", "extreme close-up", "cowboy shot", "portrait", "wide shot", "establishing shot", "low-angle", "high-angle", "dutch angle", "profile shot", "over-the-shoulder shot", "point of view (POV)", "cinematic still", "selfie", "action shot", "panoramic", "macro shot", "fisheye lens"],),
+
+                "chaos": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10.0, "step": 0.1}),
+
+                "mood_ancient_futuristic": ("FLOAT", {"default": 0.0, "min": -10.0, "max": 10.0, "step": 0.1}),
+
+                "mood_serene_chaotic": ("FLOAT", {"default": 0.0, "min": -10.0, "max": 10.0, "step": 0.1}),
+
+                "mood_organic_mechanical": ("FLOAT", {"default": 0.0, "min": -10.0, "max": 10.0, "step": 0.1}),
+
             }
+
         }
 
+
+
     RETURN_TYPES = ("STRING", "STRING",)
+
     RETURN_NAMES = ("positive_prompt", "negative_prompt",)
+
     FUNCTION = "generate_prompt"
+
+
 
     CATEGORY = "LMStudio"
 
-    def generate_prompt(self, theme, subtheme, negative_prompt, style_preset, creativity, lmstudio_endpoint, model_identifier, seed, target_model="Generic", prompt_tone="SFW"):
-        base_system_prompt = f'''You are an expert prompt engineer for a text-to-image AI. Your task is to take a user's theme and transform it into a detailed, rich, and artistic prompt.
+
+
+    def generate_prompt(self, theme_a, theme_b, blend_mode, negative_prompt, style_preset, creativity, lmstudio_endpoint, model_identifier, seed, subject="Generic", target_model="Generic", prompt_tone="SFW", action_pose="", emotion_expression="", lighting="", framing="", chaos=0.0, mood_ancient_futuristic=0.0, mood_serene_chaotic=0.0, mood_organic_mechanical=0.0):
+
+        """
+
+        Generates a final positive and negative prompt based on a wide array of creative inputs.
+
+
+
+        The method follows a clear logic:
+
+        1.  Handles randomization of 'People' subject fields.
+
+        2.  Constructs a main instruction for the AI based on the selected 'blend_mode'.
+
+        3.  Determines the required output format (tags vs. paragraph) from the 'target_model'.
+
+        4.  Builds a detailed system prompt combining the blend task and format rules.
+
+        5.  Constructs a user message containing the core themes and any specific details
+
+            from the People, Chaos, or Mood Matrix controls.
+
+        6.  Sends the final payload to the LM Studio API and returns the formatted response.
+
+        """
+
+        if subject == "People":
+            if action_pose == "random":
+                options = self.INPUT_TYPES()["optional"]["action_pose"][0]
+                action_pose = random.choice([opt for opt in options if opt not in ["default", "random"]])
+            if emotion_expression == "random":
+                options = self.INPUT_TYPES()["optional"]["emotion_expression"][0]
+                emotion_expression = random.choice([opt for opt in options if opt not in ["default", "random"]])
+            if lighting == "random":
+                options = self.INPUT_TYPES()["optional"]["lighting"][0]
+                lighting = random.choice([opt for opt in options if opt not in ["default", "random"]])
+            if framing == "random":
+                options = self.INPUT_TYPES()["optional"]["framing"][0]
+                framing = random.choice([opt for opt in options if opt not in ["default", "random"]])
+
+        # 1. Define Blend Mode Instructions
+        blend_instructions = {
+            "Simple Mix": "Your task is to creatively combine two themes, Theme A and Theme B, into a single, cohesive scene.",
+            "A vs. B": "Your task is to create a prompt depicting a conflict, confrontation, or dynamic interaction between Theme A and Theme B.",
+            "A in the world of B": "Your task is to place the subject of Theme A into the world, environment, or setting of Theme B.",
+            "A made of B": "Your task is to describe Theme A as if it were constructed from the material, substance, or concept of Theme B.",
+            "Style of A, Subject of B": "Your task is to take the subject of Theme B and apply the artistic style, mood, and aesthetic of Theme A to it."
+        }
+        blend_task = blend_instructions.get(blend_mode, blend_instructions["Simple Mix"])
+
+        # 2. Define Output Format Instructions
+        if target_model in ["Pony", "SDXL", "Flux"]:
+            format_instruction = "The output must be a concise, comma-separated list of keywords and short phrases. Do not write full sentences."
+        else:
+            format_instruction = "The output must be a single, cohesive, and descriptive paragraph."
+
+        # 3. Construct the System Prompt
+        base_system_prompt = f"""You are an expert prompt engineer for a text-to-image AI. {blend_task}
 
 Follow these rules:
-1.  **Tone:** The generated prompt must be strictly '{prompt_tone}'.
-2.  **Structure:** Create a single, cohesive paragraph. Do not use lists or bullet points.
-3.  **Clarity and Detail:** Expand on the user's theme with specific, evocative details. Describe the scene, the subject, the lighting, and the atmosphere.
-4.  **Style Integration:** Seamlessly weave the chosen style preset into the prompt. For example, for 'Cinematic', use terms like 'dramatic lighting', 'wide-angle shot', 'film grain'. For 'Photorealistic', use camera settings like '4k, dslr, f/2.8'.
-5.  **Avoid Clutter:** Do not include negative prompts, instructions, or any meta-commentary. The output should only be the positive prompt itself.'''
+1.  **Output Format:** {format_instruction}
+2.  **Style:** Seamlessly weave the '{style_preset}' style into your response.
+3.  **Tone:** The generated prompt must be strictly '{prompt_tone}'.
+4.  **Details:** Incorporate any specific details from the user message, like actions, emotions, moods, or wildcards.
+5.  **Avoid Clutter:** Do not include negative prompts, instructions, or any meta-commentary. The output should only be the positive prompt itself.
+"""
 
-        model_specific_instructions = ""
-        if target_model == "Pony":
-            model_specific_instructions = "\n6.  **Model-Specific Syntax:** You are generating a prompt for the Pony model. The prompt will be automatically prepended with quality and source tags."
-        elif target_model in ["Generic", "Flux", "SDXL"]:
-            model_specific_instructions = f"\n6.  **Model-Specific Syntax:** You are generating a prompt for the {target_model} model. The prompt will be automatically appended with a detailed style."
+        # 4. Construct the User Message
+        user_message = f"Theme A: '{theme_a}'\nTheme B: '{theme_b}'"
+
+        if subject == "People":
+            if action_pose and action_pose != "default":
+                user_message += f"\n- Action/Pose: '{action_pose}'"
+            if emotion_expression and emotion_expression != "default":
+                user_message += f"\n- Emotion/Expression: '{emotion_expression}'"
+            if lighting and lighting != "default":
+                user_message += f"\n- Lighting: '{lighting}'"
+            if framing and framing != "default":
+                user_message += f"\n- Framing: '{framing}'"
+
+        if chaos > 0:
+            num_to_select = int((chaos + 2) / 3) if chaos < 10 else 4
+            all_wildcards = self.WILDCARDS["materials"] + self.WILDCARDS["environments"] + self.WILDCARDS["styles"]
+            num_to_select = min(num_to_select, len(all_wildcards))
+            selected_wildcards = random.sample(all_wildcards, num_to_select)
+            user_message += f"\n- Wildcards: {', '.join(selected_wildcards)}"
+
+        mood_keywords = []
+        if mood_ancient_futuristic < -1.0:
+            mood_keywords.append("ancient")
+        elif mood_ancient_futuristic > 1.0:
+            mood_keywords.append("futuristic")
+        if mood_serene_chaotic < -1.0:
+            mood_keywords.append("serene")
+        elif mood_serene_chaotic > 1.0:
+            mood_keywords.append("chaotic")
+        if mood_organic_mechanical < -1.0:
+            mood_keywords.append("organic")
+        elif mood_organic_mechanical > 1.0:
+            mood_keywords.append("mechanical")
         
-        system_prompt = base_system_prompt + model_specific_instructions
+        if mood_keywords:
+            user_message += f"\n- Moods: {', '.join(mood_keywords)}"
 
-        user_message = f"Theme: '{theme}'"
-        if subtheme:
-            user_message += f"\nSub-theme: '{subtheme}'"
-        user_message += f"\nStyle Preset: '{style_preset}'"
+        system_prompt = base_system_prompt
+
+        # Add additional context for the user message
         user_message += f"\nTarget Model: '{target_model}'"
         user_message += f"\nPrompt Tone: '{prompt_tone}'"
 
@@ -82,7 +242,6 @@ Follow these rules:
                 appended_style = artistic_style
             user_message += f"\n(The following style will be automatically appended: '{appended_style}')"
 
-
         headers = {"Content-Type": "application/json"}
         payload = {
             "model": model_identifier,
@@ -101,15 +260,12 @@ Follow these rules:
             json_response = response.json()
             generated_prompt = json_response['choices'][0]['message']['content'].strip()
 
-            # Prepend tags for Pony model
             if target_model == "Pony":
                 generated_prompt = f"{pony_tags}, {generated_prompt}"
 
-            # Append style for other models
             if target_model in ["Generic", "Flux", "SDXL"]:
                 generated_prompt = f"{generated_prompt}, {appended_style}"
 
-            # For now, we just pass the user's negative prompt through
             generated_negative_prompt = negative_prompt
 
             return (generated_prompt, generated_negative_prompt)
@@ -120,4 +276,3 @@ Follow these rules:
         except (KeyError, IndexError) as e:
             error_message = f"API Error: Received an unexpected response format from the API. Details: {e}"
             return (error_message, negative_prompt)
-
