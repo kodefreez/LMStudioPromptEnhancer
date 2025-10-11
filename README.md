@@ -6,6 +6,7 @@ This node is designed to be a creative partner, helping you discover surprising 
 
 ## Features
 
+-   **Prompt Riffing:** Iteratively explore ideas by using the last generated prompt as a basis for a new, creative variation.
 -   **Concept Blender:** Creatively merge two different themes (`Theme A` and `Theme B`) using several blend modes (e.g., `A vs. B`, `A in the world of B`).
 -   **Chaos Slider:** Inject controlled randomness into your prompts to discover surprising and unexpected results.
 -   **Mood Matrix:** Guide the prompt's feeling along abstract axes like `Ancient <-> Futuristic` or `Serene <-> Chaotic`.
@@ -17,6 +18,7 @@ This node is designed to be a creative partner, helping you discover surprising 
 
 ### Main Creative Controls
 
+-   `riff_on_last_output`: (Button) When enabled, ignores all other inputs and instructs the AI to create a creative variation of the last successfully generated prompt.
 -   `theme_a` / `theme_b`: The two core ideas you want to combine.
 -   `blend_mode`: Controls how `Theme A` and `Theme B` are combined.
     -   `Simple Mix`: A creative mix of both themes.
