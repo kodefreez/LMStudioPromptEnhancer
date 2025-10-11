@@ -37,10 +37,18 @@ This node is designed to be a creative partner, helping you discover surprising 
 
 ### Fine-Tuning Sliders
 
--   `chaos`: (0 to 10) Injects random keywords into your prompt from internal lists of materials, environments, and styles. The higher the value, the more wildcards are added.
--   `mood_ancient_futuristic`: (-10 to 10) Pushes the mood towards `ancient` (negative) or `futuristic` (positive).
--   `mood_serene_chaotic`: (-10 to 10) Pushes the mood towards `serene` (negative) or `chaotic` (positive).
--   `mood_organic_mechanical`: (-10 to 10) Pushes the mood towards `organic` (negative) or `mechanical` (positive).
+-   `chaos`: (0.0 to 10.0) Injects random keywords to spark creativity. The number of keywords is determined by the chaos level:
+    -   **1.0 - 3.9:** 1 wildcard
+    -   **4.0 - 6.9:** 2 wildcards
+    -   **7.0 - 9.9:** 3 wildcards
+    -   **10.0:** 4 wildcards
+    The wildcards are pulled from internal lists of creative materials, environments, and art styles.
+
+-   `mood_ancient_futuristic`: (-10.0 to 10.0) Pushes the mood towards `ancient` (negative values < -1.0) or `futuristic` (positive values > 1.0).
+
+-   `mood_serene_chaotic`: (-10.0 to 10.0) Pushes the mood towards `serene` (negative values < -1.0) or `chaotic` (positive values > 1.0).
+
+-   `mood_organic_mechanical`: (-10.0 to 10.0) Pushes the mood towards `organic` (negative values < -1.0) or `mechanical` (positive values > 1.0).
 
 ### People Subject Options
 
