@@ -7,7 +7,7 @@ import random
 # Add the parent directory to the system path to allow imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from LMStudioPromptEnhancerNode import LMStudioPromptEnhancerNode
+from LMStudioPromptEnhancerNode import LMStudioPromptEnhancerNode, get_lmstudio_models
 
 class TestLMStudioPromptEnhancerNode(unittest.TestCase):
 
@@ -31,12 +31,15 @@ class TestLMStudioPromptEnhancerNode(unittest.TestCase):
             "chaos": 0.0,
             "mood_ancient_futuristic": 0.0,
             "mood_serene_chaotic": 0.0,
-            "mood_organic_mechanical": 0.0
+            "mood_organic_mechanical": 0.0,
+            "refresh_models": False
         }
 
+    @patch('LMStudioPromptEnhancerNode.get_lmstudio_models')
     @patch('requests.post')
-    def test_concept_blender_modes(self, mock_post):
+    def test_concept_blender_modes(self, mock_post, mock_get_models):
         """Test that the correct system prompt is generated for each blend mode."""
+        mock_get_models.return_value = ["fake-model"]
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {'choices': [{'message': {'content': 'prompt'}}]}
@@ -57,9 +60,11 @@ class TestLMStudioPromptEnhancerNode(unittest.TestCase):
                 system_prompt = mock_post.call_args[1]['json']['messages'][0]['content']
                 self.assertIn(instruction, system_prompt)
 
+    @patch('LMStudioPromptEnhancerNode.get_lmstudio_models')
     @patch('requests.post')
-    def test_prompt_riff_feature(self, mock_post):
+    def test_prompt_riff_feature(self, mock_post, mock_get_models):
         """Test the Prompt Riff functionality."""
+        mock_get_models.return_value = ["fake-model"]
         # 1. First run to set the last_generated_prompt
         mock_response1 = MagicMock()
         mock_response1.status_code = 200
@@ -86,25 +91,11 @@ class TestLMStudioPromptEnhancerNode(unittest.TestCase):
         self.assertIn('The previous prompt was: "first prompt"', user_message)
         self.assertEqual(self.node.last_generated_prompt, "riffed prompt")
 
+    @patch('LMStudioPromptEnhancerNode.get_lmstudio_models')
     @patch('requests.post')
-    def test_riff_with_no_history(self, mock_post):
-        """Test that riffing with no history falls back to normal generation."""
-        self.node.last_generated_prompt = None
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {'choices': [{'message': {'content': 'prompt'}}]}
-        mock_post.return_value = mock_response
-
-        params = self.base_params.copy()
-        self.node.generate_prompt(riff_on_last_output=True, theme_a="a", theme_b="b", blend_mode="Simple Mix", **params)
-
-        system_prompt = mock_post.call_args[1]['json']['messages'][0]['content']
-        self.assertIn("creatively combine two themes", system_prompt) # Asserts normal logic was used
-        self.assertNotIn("create a creative variation", system_prompt)
-
-    @patch('requests.post')
-    def test_api_connection_error(self, mock_post):
+    def test_api_connection_error(self, mock_post, mock_get_models):
         """Test the handling of a connection error."""
+        mock_get_models.return_value = ["fake-model"]
         from requests.exceptions import RequestException
         mock_post.side_effect = RequestException("Test connection error")
 

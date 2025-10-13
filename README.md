@@ -73,6 +73,13 @@ These options appear when `subject` is set to `People`. Each dropdown includes a
 
 The node constructs a detailed request for your local language model based on your inputs. The primary instruction is determined by the `blend_mode`, which tells the AI how to combine `Theme A` and `Theme B`. It then layers in details from the Mood Matrix, Chaos slider, and other settings. The final prompt structure (paragraph vs. tags) is determined by the `target_model`.
 
+## Configuration
+
+-   **LM Studio Endpoint:** The node defaults to `http://localhost:1234/v1/chat/completions`. If your LM Studio server is running on a different address or port, you can change this field.
+-   **Model Discovery & Refresh:** The node attempts to automatically discover available models from LM Studio when the workflow is loaded. If you load a new model in LM Studio while ComfyUI is running, you can use the `refresh_models` button on the node to update the `model_identifier` dropdown without needing to restart ComfyUI.
+
+The node constructs a detailed request for your local language model based on your inputs. The primary instruction is determined by the `blend_mode`, which tells the AI how to combine `Theme A` and `Theme B`. It then layers in details from the Mood Matrix, Chaos slider, and other settings. The final prompt structure (paragraph vs. tags) is determined by the `target_model`.
+
 ## Testing
 
 This project uses Python's built-in `unittest` framework. Tests are located in the `tests/` directory.

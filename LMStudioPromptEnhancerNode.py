@@ -12,8 +12,6 @@ def get_lmstudio_models():
     except requests.exceptions.RequestException:
         return ["LM Studio not found at http://localhost:1234"]
 
-available_models = get_lmstudio_models()
-
 class LMStudioPromptEnhancerNode:
     """
     A ComfyUI custom node that uses a local LM Studio instance to generate
@@ -29,6 +27,7 @@ class LMStudioPromptEnhancerNode:
 
     @classmethod
     def INPUT_TYPES(s):
+        available_models = get_lmstudio_models()
         return {
             "required": {
                 "riff_on_last_output": ("BOOLEAN", {"default": False}),
@@ -39,6 +38,7 @@ class LMStudioPromptEnhancerNode:
                 "style_preset": (["Cinematic", "Photorealistic", "Anime", "Fantasy Art", "Sci-Fi"], ),
                 "creativity": ("FLOAT", {"default": 0.7, "min": 0.1, "max": 2.0, "step": 0.1}),
                 "lmstudio_endpoint": ("STRING", {"multiline": False, "default": "http://localhost:1234/v1/chat/completions"}),
+                "refresh_models": ("BOOLEAN", {"default": False}),
                 "model_identifier": (available_models, ),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
                 "subject": (["Generic", "People"],),
@@ -65,7 +65,7 @@ class LMStudioPromptEnhancerNode:
     def __init__(self):
         self.last_generated_prompt = None
 
-    def generate_prompt(self, riff_on_last_output, theme_a, theme_b, blend_mode, negative_prompt, style_preset, creativity, lmstudio_endpoint, model_identifier, seed, subject="Generic", target_model="Generic", prompt_tone="SFW", action_pose="", emotion_expression="", lighting="", framing="", chaos=0.0, mood_ancient_futuristic=0.0, mood_serene_chaotic=0.0, mood_organic_mechanical=0.0):
+    def generate_prompt(self, riff_on_last_output, theme_a, theme_b, blend_mode, negative_prompt, style_preset, creativity, lmstudio_endpoint, refresh_models, model_identifier, seed, subject="Generic", target_model="Generic", prompt_tone="SFW", action_pose="", emotion_expression="", lighting="", framing="", chaos=0.0, mood_ancient_futuristic=0.0, mood_serene_chaotic=0.0, mood_organic_mechanical=0.0):
         # If riffing, use a completely different logic path
         if riff_on_last_output and self.last_generated_prompt:
             base_system_prompt = f"""You are a creative assistant for a text-to-image AI. Your task is to take the user's prompt and create a creative variation of it. 
