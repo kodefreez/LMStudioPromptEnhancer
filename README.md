@@ -18,6 +18,7 @@ This node is designed to be a creative partner, helping you discover surprising 
 
 ### Main Creative Controls
 
+-   `enable_advanced_options`: (Button) When off (default), the node runs in **Simple Mode**, ignoring all advanced settings below. When on, all advanced features are enabled.
 -   `riff_on_last_output`: (Button) When enabled, ignores all other inputs and instructs the AI to create a creative variation of the last successfully generated prompt.
 -   `theme_a` / `theme_b`: The two core ideas you want to combine.
 -   `blend_mode`: Controls how `Theme A` and `Theme B` are combined.

@@ -30,20 +30,21 @@ class LMStudioPromptEnhancerNode:
         available_models = get_lmstudio_models()
         return {
             "required": {
-                "riff_on_last_output": ("BOOLEAN", {"default": False}),
+                "enable_advanced_options": ("BOOLEAN", {"default": False}),
                 "theme_a": ("STRING", {"multiline": False, "default": "a knight"}),
                 "theme_b": ("STRING", {"multiline": False, "default": "a dragon"}),
                 "blend_mode": (["Simple Mix", "A vs. B", "A in the world of B", "A made of B", "Style of A, Subject of B"],),
-                "negative_prompt": ("STRING", {"multiline": False, "default": ""}),
-                "style_preset": (["Cinematic", "Photorealistic", "Anime", "Fantasy Art", "Sci-Fi"], ),
+                "riff_on_last_output": ("BOOLEAN", {"default": False}),
                 "creativity": ("FLOAT", {"default": 0.7, "min": 0.1, "max": 2.0, "step": 0.1}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
                 "lmstudio_endpoint": ("STRING", {"multiline": False, "default": "http://localhost:1234/v1/chat/completions"}),
                 "refresh_models": ("BOOLEAN", {"default": False}),
                 "model_identifier": (available_models, ),
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
-                "subject": (["Generic", "People"],),
             },
             "optional": {
+                "negative_prompt": ("STRING", {"multiline": False, "default": ""}),
+                "style_preset": (["Cinematic", "Photorealistic", "Anime", "Fantasy Art", "Sci-Fi"], ),
+                "subject": (["Generic", "People"],),
                 "target_model": (["Generic", "Pony", "Flux", "SDXL"],),
                 "prompt_tone": (["SFW", "NSFW"],),
                 "action_pose": (["default", "random", "standing", "sitting", "walking", "running", "jumping", "leaning against a wall", "looking over shoulder", "arms crossed", "hands in pockets", "dancing", "fighting stance", "crouching", "piloting a vehicle", "reading a book", "writing", "holding an object", "pointing", "reaching out", "adjusting glasses", "heroic pose"],),
@@ -65,7 +66,8 @@ class LMStudioPromptEnhancerNode:
     def __init__(self):
         self.last_generated_prompt = None
 
-    def generate_prompt(self, riff_on_last_output, theme_a, theme_b, blend_mode, negative_prompt, style_preset, creativity, lmstudio_endpoint, refresh_models, model_identifier, seed, subject="Generic", target_model="Generic", prompt_tone="SFW", action_pose="", emotion_expression="", lighting="", framing="", chaos=0.0, mood_ancient_futuristic=0.0, mood_serene_chaotic=0.0, mood_organic_mechanical=0.0):
+    def generate_prompt(self, enable_advanced_options, theme_a, theme_b, blend_mode, riff_on_last_output, creativity, seed, lmstudio_endpoint, refresh_models, model_identifier, negative_prompt="", style_preset="Cinematic", subject="Generic", target_model="Generic", prompt_tone="SFW", action_pose="", emotion_expression="", lighting="", framing="", chaos=0.0, mood_ancient_futuristic=0.0, mood_serene_chaotic=0.0, mood_organic_mechanical=0.0):
+        
         # If riffing, use a completely different logic path
         if riff_on_last_output and self.last_generated_prompt:
             base_system_prompt = f"""You are a creative assistant for a text-to-image AI. Your task is to take the user's prompt and create a creative variation of it. 
@@ -80,20 +82,6 @@ Follow these rules:
 
         else:
             # Normal generation logic
-            if subject == "People":
-                if action_pose == "random":
-                    options = self.INPUT_TYPES()["optional"]["action_pose"][0]
-                    action_pose = random.choice([opt for opt in options if opt not in ["default", "random"]])
-                if emotion_expression == "random":
-                    options = self.INPUT_TYPES()["optional"]["emotion_expression"][0]
-                    emotion_expression = random.choice([opt for opt in options if opt not in ["default", "random"]])
-                if lighting == "random":
-                    options = self.INPUT_TYPES()["optional"]["lighting"][0]
-                    lighting = random.choice([opt for opt in options if opt not in ["default", "random"]])
-                if framing == "random":
-                    options = self.INPUT_TYPES()["optional"]["framing"][0]
-                    framing = random.choice([opt for opt in options if opt not in ["default", "random"]])
-
             blend_instructions = {
                 "Simple Mix": "Your task is to creatively combine two themes, Theme A and Theme B, into a single, cohesive scene.",
                 "A vs. B": "Your task is to create a prompt depicting a conflict, confrontation, or dynamic interaction between Theme A and Theme B.",
@@ -120,39 +108,53 @@ Follow these rules:
 
             user_message = f"Theme A: '{theme_a}'\nTheme B: '{theme_b}'"
 
-            if subject == "People":
-                if action_pose and action_pose != "default":
-                    user_message += f"\n- Action/Pose: '{action_pose}'"
-                if emotion_expression and emotion_expression != "default":
-                    user_message += f"\n- Emotion/Expression: '{emotion_expression}'"
-                if lighting and lighting != "default":
-                    user_message += f"\n- Lighting: '{lighting}'"
-                if framing and framing != "default":
-                    user_message += f"\n- Framing: '{framing}'"
+            if enable_advanced_options:
+                if subject == "People":
+                    if action_pose == "random":
+                        options = self.INPUT_TYPES()["optional"]["action_pose"][0]
+                        action_pose = random.choice([opt for opt in options if opt not in ["default", "random"]])
+                    if emotion_expression == "random":
+                        options = self.INPUT_TYPES()["optional"]["emotion_expression"][0]
+                        emotion_expression = random.choice([opt for opt in options if opt not in ["default", "random"]])
+                    if lighting == "random":
+                        options = self.INPUT_TYPES()["optional"]["lighting"][0]
+                        lighting = random.choice([opt for opt in options if opt not in ["default", "random"]])
+                    if framing == "random":
+                        options = self.INPUT_TYPES()["optional"]["framing"][0]
+                        framing = random.choice([opt for opt in options if opt not in ["default", "random"]])
+                    
+                    if action_pose and action_pose != "default":
+                        user_message += f"\n- Action/Pose: '{action_pose}'"
+                    if emotion_expression and emotion_expression != "default":
+                        user_message += f"\n- Emotion/Expression: '{emotion_expression}'"
+                    if lighting and lighting != "default":
+                        user_message += f"\n- Lighting: '{lighting}'"
+                    if framing and framing != "default":
+                        user_message += f"\n- Framing: '{framing}'"
 
-            if chaos > 0:
-                num_to_select = int((chaos + 2) / 3) if chaos < 10 else 4
-                all_wildcards = self.WILDCARDS["materials"] + self.WILDCARDS["environments"] + self.WILDCARDS["styles"]
-                num_to_select = min(num_to_select, len(all_wildcards))
-                selected_wildcards = random.sample(all_wildcards, num_to_select)
-                user_message += f"\n- Wildcards: {', '.join(selected_wildcards)}"
+                if chaos > 0:
+                    num_to_select = int((chaos + 2) / 3) if chaos < 10 else 4
+                    all_wildcards = self.WILDCARDS["materials"] + self.WILDCARDS["environments"] + self.WILDCARDS["styles"]
+                    num_to_select = min(num_to_select, len(all_wildcards))
+                    selected_wildcards = random.sample(all_wildcards, num_to_select)
+                    user_message += f"\n- Wildcards: {', '.join(selected_wildcards)}"
 
-            mood_keywords = []
-            if mood_ancient_futuristic < -1.0:
-                mood_keywords.append("ancient")
-            elif mood_ancient_futuristic > 1.0:
-                mood_keywords.append("futuristic")
-            if mood_serene_chaotic < -1.0:
-                mood_keywords.append("serene")
-            elif mood_serene_chaotic > 1.0:
-                mood_keywords.append("chaotic")
-            if mood_organic_mechanical < -1.0:
-                mood_keywords.append("organic")
-            elif mood_organic_mechanical > 1.0:
-                mood_keywords.append("mechanical")
-            
-            if mood_keywords:
-                user_message += f"\n- Moods: {', '.join(mood_keywords)}"
+                mood_keywords = []
+                if mood_ancient_futuristic < -1.0:
+                    mood_keywords.append("ancient")
+                elif mood_ancient_futuristic > 1.0:
+                    mood_keywords.append("futuristic")
+                if mood_serene_chaotic < -1.0:
+                    mood_keywords.append("serene")
+                elif mood_serene_chaotic > 1.0:
+                    mood_keywords.append("chaotic")
+                if mood_organic_mechanical < -1.0:
+                    mood_keywords.append("organic")
+                elif mood_organic_mechanical > 1.0:
+                    mood_keywords.append("mechanical")
+                
+                if mood_keywords:
+                    user_message += f"\n- Moods: {', '.join(mood_keywords)}"
 
         # Common logic for both riff and normal generation
         system_prompt = base_system_prompt
