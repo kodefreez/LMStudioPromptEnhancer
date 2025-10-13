@@ -109,6 +109,7 @@ Follow these rules:
             user_message = f"Theme A: '{theme_a}'\nTheme B: '{theme_b}'"
 
             if enable_advanced_options:
+                # All advanced logic, including subject-specifics, goes here
                 if subject == "People":
                     if action_pose == "random":
                         options = self.INPUT_TYPES()["optional"]["action_pose"][0]
