@@ -37,6 +37,7 @@ jobs:
     name: Test on Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
 
@@ -73,6 +74,7 @@ jobs:
           files: ./coverage.xml
           flags: unittests
           fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload tests artifact (tests folder)
         if: always()

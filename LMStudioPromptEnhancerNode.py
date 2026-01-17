@@ -377,30 +377,50 @@ class LMStudioPromptEnhancerNode:
 
         # If riffing, use a completely different logic path
         if riff_on_last_output and self.last_generated_prompt:
-            base_system_prompt = f"""You are a creative assistant for a text-to-image AI. Your task is to take the user's prompt and create a creative variation of it. 
+            base_system_prompt = f"""You are a creative assistant for a text-to-image AI.
+Your task is to take the user's prompt and create a creative variation of it.
 
 Follow these rules:
 1.  **Vary the prompt:** Change the camera angle, time of day, mood, or a key detail, but keep the core subject intact.
 2.  **Output Format:** The output should be a single, cohesive, and descriptive paragraph.
 3.  **Tone:** The generated prompt must be strictly '{prompt_tone}'.
-4.  **Avoid Clutter:** Do not include any meta-commentary. The output should only be the positive prompt itself.
+4.  **Avoid Clutter:** Do not include any meta-commentary.
+    The output should only be the positive prompt itself.
 """
             user_message = f'The previous prompt was: "{self.last_generated_prompt}"'
         else:
             # Normal generation logic
             blend_instructions = {
-                "Simple Mix": "Your task is to creatively combine two themes, Theme A and Theme B, into a single, cohesive scene.",
-                "A vs. B": "Your task is to create a prompt depicting a conflict, confrontation, or dynamic interaction between Theme A and Theme B.",
-                "A in the world of B": "Your task is to place the subject of Theme A into the world, environment, or setting of Theme B.",
-                "A made of B": "Your task is to describe Theme A as if it were constructed from the material, substance, or concept of Theme B.",
-                "Style of A, Subject of B": "Your task is to take the subject of Theme B and apply the artistic style, mood, and aesthetic of Theme A to it.",
+                "Simple Mix": (
+                    "Your task is to creatively combine two themes, Theme A and Theme B, "
+                    "into a single, cohesive scene."
+                ),
+                "A vs. B": (
+                    "Your task is to create a prompt depicting a conflict, confrontation, "
+                    "or dynamic interaction between Theme A and Theme B."
+                ),
+                "A in the world of B": (
+                    "Your task is to place the subject of Theme A into the world, environment, "
+                    "or setting of Theme B."
+                ),
+                "A made of B": (
+                    "Your task is to describe Theme A as if it were constructed from the material, "
+                    "substance, or concept of Theme B."
+                ),
+                "Style of A, Subject of B": (
+                    "Your task is to take the subject of Theme B and apply the artistic style, "
+                    "mood, and aesthetic of Theme A to it."
+                ),
             }
             blend_task = blend_instructions.get(
                 blend_mode, blend_instructions["Simple Mix"]
             )
 
             if target_model in ["Pony", "SDXL", "Flux"]:
-                format_instruction = "The output must be a concise, comma-separated list of keywords and short phrases. Do not write full sentences."
+                format_instruction = (
+                    "The output must be a concise, comma-separated list of keywords and short phrases. "
+                    "Do not write full sentences."
+                )
             else:
                 format_instruction = (
                     "The output must be a single, cohesive, and descriptive paragraph."
@@ -413,7 +433,8 @@ Follow these rules:
 2.  **Style:** Seamlessly weave the '{style_preset}' style into your response.
 3.  **Tone:** The generated prompt must be strictly '{prompt_tone}'.
 4.  **Details:** Incorporate any specific details from the user message, like actions, emotions, moods, or wildcards.
-5.  **Avoid Clutter:** Do not include negative prompts, instructions, or any meta-commentary. The output should only be the positive prompt itself.
+5.  **Avoid Clutter:** Do not include negative prompts, instructions, or any meta-commentary.
+    The output should only be the positive prompt itself.
 """
 
             user_message = f"Theme A: '{theme_a}'\nTheme B: '{theme_b}'"
@@ -560,10 +581,17 @@ Follow these rules:
             return (generated_prompt, generated_negative_prompt, "\n".join(warnings))
 
         except requests.exceptions.RequestException as e:
-            error_message = f"API Error: Could not connect to LM Studio at {lmstudio_endpoint}. Please ensure it is running and the endpoint is correct. Details: {e}"
+            error_message = (
+                f"API Error: Could not connect to LM Studio at {lmstudio_endpoint}. "
+                "Please ensure it is running and the endpoint is correct. "
+                f"Details: {e}"
+            )
             self.last_warnings = [error_message]
             return (error_message, negative_prompt, error_message)
         except (ValueError, KeyError, IndexError) as e:
-            error_message = f"API Error: Received an unexpected response format from the API. Details: {e}"
+            error_message = (
+                "API Error: Received an unexpected response format from the API. "
+                f"Details: {e}"
+            )
             self.last_warnings = [error_message]
             return (error_message, negative_prompt, error_message)
