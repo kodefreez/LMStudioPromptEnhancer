@@ -1,6 +1,8 @@
 import os
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 # Add the parent directory to the system path to allow imports
@@ -369,6 +371,73 @@ class TestLMStudioPromptEnhancerNode(unittest.TestCase):
         user_message = mock_post.call_args[1]["json"]["messages"][1]["content"]
         self.assertIn("Action/Pose: 'ass_on_heels'", user_message)
         self.assertEqual(warnings, "")
+
+    @patch("LMStudioPromptEnhancerNode.get_lmstudio_models")
+    @patch("requests.post")
+    def test_wildcard_resolution_replaces_token(self, mock_post, mock_get_models):
+        """External wildcard tokens resolve using A1111-style text files."""
+        mock_get_models.return_value = ["fake-model"]
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "choices": [{"message": {"content": "prompt"}}]
+        }
+        mock_post.return_value = mock_response
+
+        tmpdir = Path(tempfile.mkdtemp())
+        (tmpdir / "materials.txt").write_text("steel\n", encoding="utf-8")
+        self.node.wildcard_dir = tmpdir
+
+        _, _, warnings = self.node.generate_prompt(
+            enable_advanced_options=False,
+            theme_a="__materials__",
+            theme_b="b",
+            blend_mode="Simple Mix",
+            riff_on_last_output=False,
+            creativity=0.7,
+            seed=0,
+            lmstudio_endpoint="http://f",
+            refresh_models=False,
+            model_identifier="fake-model",
+            **self.optional_params,
+        )
+
+        user_message = mock_post.call_args[1]["json"]["messages"][1]["content"]
+        self.assertIn("steel", user_message)
+        self.assertNotIn("__materials__", user_message)
+        self.assertEqual(warnings, "")
+
+    @patch("LMStudioPromptEnhancerNode.get_lmstudio_models")
+    @patch("requests.post")
+    def test_wildcard_missing_adds_warning(self, mock_post, mock_get_models):
+        """Missing wildcard files add warnings and leave tokens intact."""
+        mock_get_models.return_value = ["fake-model"]
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "choices": [{"message": {"content": "prompt"}}]
+        }
+        mock_post.return_value = mock_response
+
+        self.node.wildcard_dir = Path(tempfile.mkdtemp())
+
+        _, _, warnings = self.node.generate_prompt(
+            enable_advanced_options=False,
+            theme_a="__missing__",
+            theme_b="b",
+            blend_mode="Simple Mix",
+            riff_on_last_output=False,
+            creativity=0.7,
+            seed=0,
+            lmstudio_endpoint="http://f",
+            refresh_models=False,
+            model_identifier="fake-model",
+            **self.optional_params,
+        )
+
+        user_message = mock_post.call_args[1]["json"]["messages"][1]["content"]
+        self.assertIn("__missing__", user_message)
+        self.assertIn("Wildcard __missing__ not found or empty.", warnings)
 
 
 if __name__ == "__main__":

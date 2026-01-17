@@ -1,4 +1,6 @@
 import random
+import re
+from pathlib import Path
 
 import requests
 
@@ -322,6 +324,35 @@ class LMStudioPromptEnhancerNode:
         self.available_models = ["No models found"]
         # Last run warnings (list of strings)
         self.last_warnings = []
+        self.wildcard_dir = Path(__file__).resolve().parent / "wildcards"
+
+    def _load_wildcard_values(self, name):
+        """Load values for a single wildcard name from wildcards/<name>.txt."""
+        path = self.wildcard_dir / f"{name}.txt"
+        if not path.is_file():
+            return None
+        try:
+            values = [
+                line.strip()
+                for line in path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            return values or None
+        except OSError:
+            return None
+
+    def _resolve_wildcards(self, text, warnings):
+        """Resolve __name__ tokens using A1111-style wildcard files."""
+
+        def replace(match):
+            name = match.group(1)
+            values = self._load_wildcard_values(name)
+            if not values:
+                warnings.append(f"Wildcard __{name}__ not found or empty.")
+                return match.group(0)
+            return random.choice(values)
+
+        return re.sub(r"__([A-Za-z0-9_-]+)__", replace, text)
 
     def discover_models(self, lmstudio_base_url="http://localhost:1234"):
         """Discover available models from LM Studio at runtime.
@@ -527,6 +558,10 @@ Follow these rules:
         # Common logic for both riff and normal generation
         system_prompt = base_system_prompt
         user_message += f"\nPrompt Tone: '{prompt_tone}'"
+
+        # Resolve external wildcards in both system and user messages
+        system_prompt = self._resolve_wildcards(system_prompt, warnings)
+        user_message = self._resolve_wildcards(user_message, warnings)
 
         pony_tags = ""
         if target_model == "Pony":
