@@ -7,7 +7,9 @@ import requests
 
 def get_lmstudio_models():
     """Fetches the list of available models from a local LM Studio server."""
-    print("[LMStudio] Attempting to fetch models from http://localhost:1234/api/v0/models")
+    print(
+        "[LMStudio] Attempting to fetch models from http://localhost:1234/api/v0/models"
+    )
     try:
         response = requests.get("http://localhost:1234/api/v0/models", timeout=5)
         response.raise_for_status()
@@ -89,7 +91,7 @@ class LMStudioPromptEnhancerNode:
             available_models = get_lmstudio_models()
         except Exception:
             available_models = ["No models found"]
-        
+
         return {
             "required": {
                 "enable_advanced_options": ("BOOLEAN", {"default": False}),
@@ -122,6 +124,14 @@ class LMStudioPromptEnhancerNode:
             },
             "optional": {
                 "negative_prompt": ("STRING", {"multiline": False, "default": ""}),
+                "wildcard_1": (
+                    ["none", "materials", "environments", "styles"],
+                    {"default": "none"},
+                ),
+                "wildcard_2": (
+                    ["none", "materials", "environments", "styles"],
+                    {"default": "none"},
+                ),
                 "style_preset": (
                     ["Cinematic", "Photorealistic", "Anime", "Fantasy Art", "Sci-Fi"],
                 ),
@@ -322,8 +332,8 @@ class LMStudioPromptEnhancerNode:
             },
         }
 
-    RETURN_TYPES = ("STRING", "STRING", "STRING")
-    RETURN_NAMES = ("positive_prompt", "negative_prompt", "warnings")
+    RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING")
+    RETURN_NAMES = ("positive_prompt", "negative_prompt", "warnings", "gallery")
     FUNCTION = "generate_prompt"
     CATEGORY = "LMStudio"
 
@@ -380,6 +390,23 @@ class LMStudioPromptEnhancerNode:
         """Return a copy of the current prompt history."""
         return list(self.history)
 
+    def _format_gallery(self):
+        """Format the prompt history as a readable gallery string."""
+        if not self.history:
+            return "Gallery is empty"
+
+        lines = []
+        for i, entry in enumerate(self.history, 1):
+            lines.append(f"--- Prompt {i} ---")
+            lines.append(f"Positive: {entry['positive'][:100]}...")
+            if entry["negative"]:
+                lines.append(f"Negative: {entry['negative'][:100]}...")
+            if entry["warnings"]:
+                lines.append(f"Warnings: {entry['warnings'][:100]}...")
+            lines.append("")
+
+        return "\n".join(lines)
+
     def discover_models(self, lmstudio_base_url="http://localhost:1234"):
         """Discover available models from LM Studio at runtime.
         This avoids performing network IO at import time and can be triggered by the user via `refresh_models`.
@@ -407,6 +434,8 @@ class LMStudioPromptEnhancerNode:
         refresh_models,
         model_identifier,
         negative_prompt="",
+        wildcard_1="none",
+        wildcard_2="none",
         style_preset="Cinematic",
         subject="Generic",
         target_model="Generic",
@@ -424,6 +453,14 @@ class LMStudioPromptEnhancerNode:
         # Local warnings for this run
         warnings = []
 
+        # Inject selected wildcards into themes
+        if wildcard_1 and wildcard_1 != "none":
+            selected = random.choice(self.WILDCARDS.get(wildcard_1, []))
+            theme_a = f"{theme_a}, {selected}"
+        if wildcard_2 and wildcard_2 != "none":
+            selected = random.choice(self.WILDCARDS.get(wildcard_2, []))
+            theme_b = f"{theme_b}, {selected}"
+
         # Optionally refresh model list at runtime (no network IO at import)
         if refresh_models:
             print("[LMStudio] refresh_models=True, triggering model discovery")
@@ -437,7 +474,9 @@ class LMStudioPromptEnhancerNode:
                     "No models found at LM Studio; model identifier could not be discovered."
                 )
         else:
-            print(f"[LMStudio] refresh_models=False, using model_identifier: {model_identifier}")
+            print(
+                f"[LMStudio] refresh_models=False, using model_identifier: {model_identifier}"
+            )
 
         # If riffing, use a completely different logic path
         if riff_on_last_output and self.last_generated_prompt:
@@ -637,7 +676,9 @@ Follow these rules:
 
             json_response = response.json()
             generated_prompt = json_response["choices"][0]["message"]["content"].strip()
-            print(f"[LMStudio] Successfully generated prompt ({len(generated_prompt)} chars)")
+            print(
+                f"[LMStudio] Successfully generated prompt ({len(generated_prompt)} chars)"
+            )
 
             # Save the successful output for the next riff
             self.last_generated_prompt = generated_prompt
@@ -658,7 +699,11 @@ Follow these rules:
                 negative=generated_negative_prompt,
                 warnings_text=warnings_text,
             )
-            return (generated_prompt, generated_negative_prompt, warnings_text)
+
+            # Format gallery output
+            gallery = self._format_gallery()
+
+            return (generated_prompt, generated_negative_prompt, warnings_text, gallery)
 
         except requests.exceptions.RequestException as e:
             error_message = (
@@ -667,11 +712,13 @@ Follow these rules:
                 f"Details: {e}"
             )
             self.last_warnings = [error_message]
-            return (error_message, negative_prompt, error_message)
+            gallery = self._format_gallery()
+            return (error_message, negative_prompt, error_message, gallery)
         except (ValueError, KeyError, IndexError) as e:
             error_message = (
                 "API Error: Received an unexpected response format from the API. "
                 f"Details: {e}"
             )
             self.last_warnings = [error_message]
-            return (error_message, negative_prompt, error_message)
+            gallery = self._format_gallery()
+            return (error_message, negative_prompt, error_message, gallery)

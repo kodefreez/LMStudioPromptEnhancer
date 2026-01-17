@@ -19,6 +19,8 @@ class TestLMStudioPromptEnhancerNode(unittest.TestCase):
         # Parameters that are now optional
         self.optional_params = {
             "negative_prompt": "",
+            "wildcard_1": "none",
+            "wildcard_2": "none",
             "style_preset": "Cinematic",
             "subject": "Generic",
             "target_model": "Generic",
@@ -113,7 +115,7 @@ class TestLMStudioPromptEnhancerNode(unittest.TestCase):
 
         mock_post.side_effect = RequestException("Test connection error")
 
-        positive_prompt, _, warnings = self.node.generate_prompt(
+        positive_prompt, _, warnings, _ = self.node.generate_prompt(
             enable_advanced_options=False,
             theme_a="test",
             theme_b="",
@@ -198,7 +200,7 @@ class TestLMStudioPromptEnhancerNode(unittest.TestCase):
         }
         mock_post.return_value = mock_response
 
-        positive, negative, warnings = self.node.generate_prompt(
+        positive, negative, warnings, _ = self.node.generate_prompt(
             enable_advanced_options=False,
             theme_a="a",
             theme_b="b",
@@ -226,7 +228,7 @@ class TestLMStudioPromptEnhancerNode(unittest.TestCase):
         mock_response.json.return_value = {}  # missing choices
         mock_post.return_value = mock_response
 
-        positive_prompt, _, warnings = self.node.generate_prompt(
+        positive_prompt, _, warnings, _ = self.node.generate_prompt(
             enable_advanced_options=False,
             theme_a="test",
             theme_b="",
@@ -254,7 +256,7 @@ class TestLMStudioPromptEnhancerNode(unittest.TestCase):
         mock_response.json.side_effect = ValueError("No JSON")
         mock_post.return_value = mock_response
 
-        positive_prompt, _, warnings = self.node.generate_prompt(
+        positive_prompt, _, warnings, _ = self.node.generate_prompt(
             enable_advanced_options=False,
             theme_a="test",
             theme_b="",
@@ -320,7 +322,7 @@ class TestLMStudioPromptEnhancerNode(unittest.TestCase):
         params["action_pose"] = "ass_on_heels"
         params["prompt_tone"] = "SFW"
 
-        positive, negative, warnings = self.node.generate_prompt(
+        positive, negative, warnings, _ = self.node.generate_prompt(
             enable_advanced_options=True,
             theme_a="a",
             theme_b="b",
@@ -355,7 +357,7 @@ class TestLMStudioPromptEnhancerNode(unittest.TestCase):
         params["action_pose"] = "ass_on_heels"
         params["prompt_tone"] = "NSFW"
 
-        positive, negative, warnings = self.node.generate_prompt(
+        positive, negative, warnings, _ = self.node.generate_prompt(
             enable_advanced_options=True,
             theme_a="a",
             theme_b="b",
@@ -475,7 +477,7 @@ class TestLMStudioPromptEnhancerNode(unittest.TestCase):
         (tmpdir / "materials.txt").write_text("steel\n", encoding="utf-8")
         self.node.wildcard_dir = tmpdir
 
-        _, _, warnings = self.node.generate_prompt(
+        _, _, warnings, _ = self.node.generate_prompt(
             enable_advanced_options=False,
             theme_a="__materials__",
             theme_b="b",
@@ -508,7 +510,7 @@ class TestLMStudioPromptEnhancerNode(unittest.TestCase):
 
         self.node.wildcard_dir = Path(tempfile.mkdtemp())
 
-        _, _, warnings = self.node.generate_prompt(
+        _, _, warnings, _ = self.node.generate_prompt(
             enable_advanced_options=False,
             theme_a="__missing__",
             theme_b="b",
