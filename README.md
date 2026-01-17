@@ -12,6 +12,8 @@ This node is designed to be a creative partner, helping you discover surprising 
 -   **Concept Blender:** Creatively merge two different themes (`Theme A` and `Theme B`) using several blend modes (e.g., `A vs. B`, `A in the world of B`).
 -   **Chaos Slider:** Inject controlled randomness into your prompts to discover surprising and unexpected results.
 -   **Mood Matrix:** Guide the prompt's feeling along abstract axes like `Ancient <-> Futuristic` or `Serene <-> Chaotic`.
+-   **Wildcard Support:** Use A1111-style `__wildcard__` tokens in your themes that resolve to random entries from text files (e.g., `__materials__`, `__styles__`). Bundled sample wildcards included.
+-   **Prompt History:** Automatically tracks your last 20 generated prompts (positive, negative, and warnings) for easy recall and iteration.
 -   **Subject-Specific Enhancement:** Tailor prompt generation for specific subjects like `People` with dedicated controls.
 -   **Model-Aware Output:** Automatically switches between detailed paragraphs and concise, comma-separated tags based on the target model (`SDXL`, `Pony`, etc.).
 -   **Direct LM Studio Integration:** Connects directly to your local LM Studio server API.
@@ -54,6 +56,20 @@ This node is designed to be a creative partner, helping you discover surprising 
 -   `mood_serene_chaotic`: (-10.0 to 10.0) Pushes the mood towards `serene` (negative values < -1.0) or `chaotic` (positive values > 1.0).
 
 -   `mood_organic_mechanical`: (-10.0 to 10.0) Pushes the mood towards `organic` (negative values < -1.0) or `mechanical` (positive values > 1.0).
+
+### Wildcards
+
+The node supports A1111-style wildcard tokens in your `theme_a` and `theme_b` inputs. Use the format `__name__` to reference wildcard files:
+
+-   `__materials__` → Resolves to a random entry from `wildcards/materials.txt`
+-   `__environments__` → Resolves to a random entry from `wildcards/environments.txt`
+-   `__styles__` → Resolves to a random entry from `wildcards/styles.txt`
+
+Sample wildcard files are bundled in the `wildcards/` folder. You can add your own `.txt` files with one entry per line. If a wildcard file is missing or empty, the token is left unchanged and a warning is logged.
+
+### Prompt History
+
+The node automatically records the last 20 prompts generated (including positive, negative, and warnings). Access this history via the `get_history()` method for building galleries or prompt recall features. History is bounded and maintains most-recent order.
 
 ### People Subject Options
 
