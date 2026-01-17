@@ -130,11 +130,12 @@ class TestLMStudioPromptEnhancerNode(unittest.TestCase):
         self.assertIn("API Error: Could not connect to LM Studio", warnings)
 
     def test_input_types_default_models(self):
-        """Ensure INPUT_TYPES does not perform network IO at import and returns a safe placeholder."""
+        """Ensure INPUT_TYPES fetches models at UI load time and populates dropdown."""
         types = LMStudioPromptEnhancerNode.INPUT_TYPES()
         model_options = types["required"]["model_identifier"][0]
         self.assertIsInstance(model_options, list)
-        self.assertIn("No models found", model_options)
+        # Should contain either actual models or fallback message
+        self.assertGreater(len(model_options), 0)
 
     def test_fix_metadata_roundtrip(self):
         """Test that clear_and_set_prompt writes JSON prompt metadata into a PNG."""

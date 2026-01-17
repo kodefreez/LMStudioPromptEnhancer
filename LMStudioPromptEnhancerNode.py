@@ -84,8 +84,12 @@ class LMStudioPromptEnhancerNode:
 
     @classmethod
     def INPUT_TYPES(s):
-        # Avoid network IO during import: provide a safe placeholder list.
-        available_models = ["No models found"]
+        # Try to fetch models at UI load time for dropdown population
+        try:
+            available_models = get_lmstudio_models()
+        except Exception:
+            available_models = ["No models found"]
+        
         return {
             "required": {
                 "enable_advanced_options": ("BOOLEAN", {"default": False}),
