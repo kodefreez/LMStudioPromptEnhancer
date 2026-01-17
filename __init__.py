@@ -1,5 +1,6 @@
 import json
 import os
+
 from .LMStudioPromptEnhancerNode import LMStudioPromptEnhancerNode
 
 # Get the directory of the current file
@@ -16,12 +17,8 @@ if os.path.exists(package_json_path):
 
 from .LMStudioPromptEnhancerNode import LMStudioPromptEnhancerNode
 
-NODE_CLASS_MAPPINGS = {
-    "LMStudioPromptEnhancer": LMStudioPromptEnhancerNode
-}
+NODE_CLASS_MAPPINGS = {"LMStudioPromptEnhancer": LMStudioPromptEnhancerNode}
 
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "LMStudioPromptEnhancer": "LM Studio Prompt Enhancer"
-}
+NODE_DISPLAY_NAME_MAPPINGS = {"LMStudioPromptEnhancer": "LM Studio Prompt Enhancer"}
 
-__all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS', '__version__']
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "__version__"]

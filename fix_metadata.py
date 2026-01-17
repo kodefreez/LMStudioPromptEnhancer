@@ -1,5 +1,7 @@
-from PIL import Image
 import json
+
+from PIL import Image
+
 
 def clear_and_set_prompt(image_path: str, prompt_text: str, output_path: str):
     """
@@ -19,6 +21,7 @@ def clear_and_set_prompt(image_path: str, prompt_text: str, output_path: str):
 
             # Use PngInfo to write textual metadata into PNG images
             from PIL.PngImagePlugin import PngInfo
+
             pnginfo = PngInfo()
             pnginfo.add_text("prompt", prompt_json)
 
@@ -31,6 +34,7 @@ def clear_and_set_prompt(image_path: str, prompt_text: str, output_path: str):
         print(f"Error: The file '{image_path}' was not found.")
     except Exception as e:
         print(f"An error occurred: {e}")
+
 
 # --- How to use this script ---
 

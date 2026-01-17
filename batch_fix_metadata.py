@@ -1,6 +1,8 @@
-import os
-from PIL import Image
 import json
+import os
+
+from PIL import Image
+
 
 def extract_prompt_from_metadata(metadata):
     """
@@ -23,12 +25,15 @@ def extract_prompt_from_metadata(metadata):
             for node in workflow_data.get("nodes", []):
                 if "widgets_values" in node:
                     for value in node["widgets_values"]:
-                        if isinstance(value, str) and len(value) > 100: # Heuristic for a prompt
+                        if (
+                            isinstance(value, str) and len(value) > 100
+                        ):  # Heuristic for a prompt
                             return value
         except (json.JSONDecodeError, TypeError):
             pass
 
     return None
+
 
 def batch_fix_metadata(input_folder: str, output_folder: str):
     """
@@ -51,6 +56,7 @@ def batch_fix_metadata(input_folder: str, output_folder: str):
                     if prompt_text:
                         # Create new, clean metadata using PngInfo
                         from PIL.PngImagePlugin import PngInfo
+
                         pnginfo = PngInfo()
                         pnginfo.add_text("prompt", json.dumps({"prompt": prompt_text}))
 
@@ -62,6 +68,7 @@ def batch_fix_metadata(input_folder: str, output_folder: str):
 
             except Exception as e:
                 print(f"An error occurred while processing '{filename}': {e}")
+
 
 # --- How to use this script ---
 
