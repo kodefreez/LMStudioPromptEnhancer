@@ -7,13 +7,16 @@ import requests
 
 def get_lmstudio_models():
     """Fetches the list of available models from a local LM Studio server."""
+    print("[LMStudio] Attempting to fetch models from http://localhost:1234/api/v0/models")
     try:
         response = requests.get("http://localhost:1234/api/v0/models", timeout=5)
         response.raise_for_status()
         models_data = response.json().get("data", [])
         model_ids = [model["id"] for model in models_data]
+        print(f"[LMStudio] Found {len(model_ids)} model(s): {model_ids}")
         return model_ids if model_ids else ["No models found"]
-    except requests.exceptions.RequestException:
+    except requests.exceptions.RequestException as e:
+        print(f"[LMStudio] Connection failed: {e}")
         return ["LM Studio not found at http://localhost:1234"]
 
 
@@ -377,11 +380,14 @@ class LMStudioPromptEnhancerNode:
         """Discover available models from LM Studio at runtime.
         This avoids performing network IO at import time and can be triggered by the user via `refresh_models`.
         """
+        print("[LMStudio] discover_models() called")
         try:
             models = get_lmstudio_models()
-        except Exception:
+        except Exception as e:
+            print(f"[LMStudio] Exception during model discovery: {e}")
             models = ["No models found"]
         self.available_models = models
+        print(f"[LMStudio] Updated available_models: {models}")
         return models
 
     def generate_prompt(
@@ -416,14 +422,18 @@ class LMStudioPromptEnhancerNode:
 
         # Optionally refresh model list at runtime (no network IO at import)
         if refresh_models:
+            print("[LMStudio] refresh_models=True, triggering model discovery")
             self.discover_models()
             if not model_identifier or model_identifier == "No models found":
                 if self.available_models and self.available_models[0]:
                     model_identifier = self.available_models[0]
+                    print(f"[LMStudio] Auto-selected model: {model_identifier}")
             if model_identifier == "No models found":
                 warnings.append(
                     "No models found at LM Studio; model identifier could not be discovered."
                 )
+        else:
+            print(f"[LMStudio] refresh_models=False, using model_identifier: {model_identifier}")
 
         # If riffing, use a completely different logic path
         if riff_on_last_output and self.last_generated_prompt:
@@ -610,14 +620,20 @@ Follow these rules:
             "seed": seed,
         }
 
+        print(f"[LMStudio] Sending request to {lmstudio_endpoint}")
+        print(f"[LMStudio] Using model: {model_identifier}")
+        print(f"[LMStudio] Temperature: {creativity}")
+
         try:
             response = requests.post(
                 lmstudio_endpoint, headers=headers, json=payload, timeout=30
             )
             response.raise_for_status()
+            print(f"[LMStudio] API response status: {response.status_code}")
 
             json_response = response.json()
             generated_prompt = json_response["choices"][0]["message"]["content"].strip()
+            print(f"[LMStudio] Successfully generated prompt ({len(generated_prompt)} chars)")
 
             # Save the successful output for the next riff
             self.last_generated_prompt = generated_prompt
