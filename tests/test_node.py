@@ -374,7 +374,9 @@ class TestLMStudioPromptEnhancerNode(unittest.TestCase):
 
     @patch("LMStudioPromptEnhancerNode.get_lmstudio_models")
     @patch("requests.post")
-    def test_history_records_positive_negative_warnings(self, mock_post, mock_get_models):
+    def test_history_records_positive_negative_warnings(
+        self, mock_post, mock_get_models
+    ):
         """History stores recent prompts with warnings text and respects ordering."""
         mock_get_models.return_value = ["fake-model"]
         responses = [
@@ -429,9 +431,7 @@ class TestLMStudioPromptEnhancerNode(unittest.TestCase):
         responses = []
         for idx in range(3):
             resp = MagicMock(status_code=200)
-            resp.json.return_value = {
-                "choices": [{"message": {"content": f"p{idx}"}}]
-            }
+            resp.json.return_value = {"choices": [{"message": {"content": f"p{idx}"}}]}
             responses.append(resp)
         mock_post.side_effect = responses
 
