@@ -1,5 +1,7 @@
 # LM Studio Prompt Enhancer for ComfyUI
 
+[![CI](https://github.com/kodefreez/LMStudioPromptEnhancer/actions/workflows/ci.yml/badge.svg)](https://github.com/kodefreez/LMStudioPromptEnhancer/actions/workflows/ci.yml) [![Coverage Status](https://codecov.io/gh/kodefreez/LMStudioPromptEnhancer/branch/main/graph/badge.svg)](https://codecov.io/gh/kodefreez/LMStudioPromptEnhancer)
+
 A custom node for ComfyUI that connects to a local LM Studio instance to generate enriched, detailed prompts for image synthesis.
 
 This node is designed to be a creative partner, helping you discover surprising and complex results with minimal initial direction through features like the Concept Blender, Chaos Slider, and Mood Matrix.
