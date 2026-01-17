@@ -25,6 +25,8 @@ class LMStudioPromptEnhancerNode:
     the discovery of novel and surprising visual ideas.
     """
 
+    HISTORY_LIMIT = 20
+
     WILDCARDS = {
         "materials": [
             "made of liquid metal",
@@ -325,6 +327,8 @@ class LMStudioPromptEnhancerNode:
         # Last run warnings (list of strings)
         self.last_warnings = []
         self.wildcard_dir = Path(__file__).resolve().parent / "wildcards"
+        # In-memory prompt history for gallery/recall
+        self.history = []
 
     def _load_wildcard_values(self, name):
         """Load values for a single wildcard name from wildcards/<name>.txt."""
@@ -353,6 +357,21 @@ class LMStudioPromptEnhancerNode:
             return random.choice(values)
 
         return re.sub(r"__([A-Za-z0-9_-]+)__", replace, text)
+
+    def _record_history(self, positive, negative, warnings_text):
+        """Keep a bounded history of recent prompts for gallery use."""
+        entry = {
+            "positive": positive,
+            "negative": negative,
+            "warnings": warnings_text,
+        }
+        self.history.append(entry)
+        if len(self.history) > self.HISTORY_LIMIT:
+            self.history = self.history[-self.HISTORY_LIMIT :]
+
+    def get_history(self):
+        """Return a copy of the current prompt history."""
+        return list(self.history)
 
     def discover_models(self, lmstudio_base_url="http://localhost:1234"):
         """Discover available models from LM Studio at runtime.
@@ -610,10 +629,16 @@ Follow these rules:
                 generated_prompt = f"{generated_prompt} {appended_style}"
 
             generated_negative_prompt = negative_prompt
+            warnings_text = "\n".join(warnings)
 
-            # Save warnings for external inspection
+            # Save warnings and history for external inspection/gallery
             self.last_warnings = warnings
-            return (generated_prompt, generated_negative_prompt, "\n".join(warnings))
+            self._record_history(
+                positive=generated_prompt,
+                negative=generated_negative_prompt,
+                warnings_text=warnings_text,
+            )
+            return (generated_prompt, generated_negative_prompt, warnings_text)
 
         except requests.exceptions.RequestException as e:
             error_message = (

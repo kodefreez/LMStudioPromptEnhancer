@@ -374,6 +374,92 @@ class TestLMStudioPromptEnhancerNode(unittest.TestCase):
 
     @patch("LMStudioPromptEnhancerNode.get_lmstudio_models")
     @patch("requests.post")
+    def test_history_records_positive_negative_warnings(self, mock_post, mock_get_models):
+        """History stores recent prompts with warnings text and respects ordering."""
+        mock_get_models.return_value = ["fake-model"]
+        responses = [
+            MagicMock(status_code=200),
+            MagicMock(status_code=200),
+        ]
+        responses[0].json.return_value = {"choices": [{"message": {"content": "p1"}}]}
+        responses[1].json.return_value = {"choices": [{"message": {"content": "p2"}}]}
+        mock_post.side_effect = responses
+
+        params = self.optional_params.copy()
+
+        self.node.generate_prompt(
+            enable_advanced_options=False,
+            theme_a="a",
+            theme_b="b",
+            blend_mode="Simple Mix",
+            riff_on_last_output=False,
+            creativity=0.7,
+            seed=0,
+            lmstudio_endpoint="http://f",
+            refresh_models=False,
+            model_identifier="fake-model",
+            **params,
+        )
+
+        self.node.generate_prompt(
+            enable_advanced_options=False,
+            theme_a="c",
+            theme_b="d",
+            blend_mode="Simple Mix",
+            riff_on_last_output=False,
+            creativity=0.7,
+            seed=1,
+            lmstudio_endpoint="http://f",
+            refresh_models=False,
+            model_identifier="fake-model",
+            **params,
+        )
+
+        history = self.node.get_history()
+        self.assertEqual(len(history), 2)
+        self.assertTrue(history[0]["positive"].startswith("p1"))
+        self.assertTrue(history[1]["positive"].startswith("p2"))
+        self.assertEqual(history[0]["warnings"], "")
+
+    @patch("LMStudioPromptEnhancerNode.get_lmstudio_models")
+    @patch("requests.post")
+    def test_history_truncates_to_limit(self, mock_post, mock_get_models):
+        """History keeps only the most recent entries within HISTORY_LIMIT."""
+        mock_get_models.return_value = ["fake-model"]
+        responses = []
+        for idx in range(3):
+            resp = MagicMock(status_code=200)
+            resp.json.return_value = {
+                "choices": [{"message": {"content": f"p{idx}"}}]
+            }
+            responses.append(resp)
+        mock_post.side_effect = responses
+
+        self.node.HISTORY_LIMIT = 2
+
+        params = self.optional_params.copy()
+        for seed in range(3):
+            self.node.generate_prompt(
+                enable_advanced_options=False,
+                theme_a="a",
+                theme_b="b",
+                blend_mode="Simple Mix",
+                riff_on_last_output=False,
+                creativity=0.7,
+                seed=seed,
+                lmstudio_endpoint="http://f",
+                refresh_models=False,
+                model_identifier="fake-model",
+                **params,
+            )
+
+        history = self.node.get_history()
+        self.assertEqual(len(history), 2)
+        self.assertTrue(history[0]["positive"].startswith("p1"))
+        self.assertTrue(history[1]["positive"].startswith("p2"))
+
+    @patch("LMStudioPromptEnhancerNode.get_lmstudio_models")
+    @patch("requests.post")
     def test_wildcard_resolution_replaces_token(self, mock_post, mock_get_models):
         """External wildcard tokens resolve using A1111-style text files."""
         mock_get_models.return_value = ["fake-model"]
