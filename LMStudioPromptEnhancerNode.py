@@ -124,6 +124,10 @@ class LMStudioPromptEnhancerNode:
             },
             "optional": {
                 "negative_prompt": ("STRING", {"multiline": False, "default": ""}),
+                "generate_negative_prompt": (
+                    "BOOLEAN",
+                    {"default": False},
+                ),
                 "wildcard_1": (
                     ["none", "materials", "environments", "styles"],
                     {"default": "none"},
@@ -407,6 +411,50 @@ class LMStudioPromptEnhancerNode:
 
         return "\n".join(lines)
 
+    def _generate_negative_prompt(
+        self, positive_prompt, lmstudio_endpoint, model_identifier, creativity
+    ):
+        """Generate an intelligent negative prompt based on the positive prompt."""
+        print("[LMStudio] Generating intelligent negative prompt...")
+
+        negative_system_prompt = """You are an expert at creating negative prompts for image generation.
+Given a positive prompt, generate a concise negative prompt that specifies unwanted qualities, artifacts, and defects.
+Be specific and targeted - avoid generic lists. Focus on what would ruin this specific image.
+Return only the negative prompt text, nothing else."""
+
+        negative_user_message = (
+            f"Create a negative prompt for this image prompt:\n{positive_prompt}"
+        )
+
+        payload = {
+            "model": model_identifier,
+            "messages": [
+                {"role": "system", "content": negative_system_prompt},
+                {"role": "user", "content": negative_user_message},
+            ],
+            "temperature": creativity,
+        }
+
+        try:
+            response = requests.post(
+                lmstudio_endpoint,
+                json=payload,
+                headers={"Content-Type": "application/json"},
+                timeout=30,
+            )
+            response.raise_for_status()
+            json_response = response.json()
+            generated_negative = json_response["choices"][0]["message"][
+                "content"
+            ].strip()
+            print(
+                f"[LMStudio] Generated negative prompt ({len(generated_negative)} chars)"
+            )
+            return generated_negative
+        except Exception as e:
+            print(f"[LMStudio] Failed to generate negative prompt: {e}")
+            return ""
+
     def discover_models(self, lmstudio_base_url="http://localhost:1234"):
         """Discover available models from LM Studio at runtime.
         This avoids performing network IO at import time and can be triggered by the user via `refresh_models`.
@@ -434,6 +482,7 @@ class LMStudioPromptEnhancerNode:
         refresh_models,
         model_identifier,
         negative_prompt="",
+        generate_negative_prompt=False,
         wildcard_1="none",
         wildcard_2="none",
         style_preset="Cinematic",
@@ -690,6 +739,18 @@ Follow these rules:
                 generated_prompt = f"{generated_prompt} {appended_style}"
 
             generated_negative_prompt = negative_prompt
+
+            # Generate intelligent negative prompt if requested
+            if generate_negative_prompt:
+                gen_neg = self._generate_negative_prompt(
+                    generated_prompt, lmstudio_endpoint, model_identifier, creativity
+                )
+                if gen_neg:
+                    # Combine user negative prompt (if any) with generated one
+                    generated_negative_prompt = (
+                        f"{negative_prompt}, {gen_neg}" if negative_prompt else gen_neg
+                    )
+
             warnings_text = "\n".join(warnings)
 
             # Save warnings and history for external inspection/gallery
