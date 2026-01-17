@@ -15,8 +15,6 @@ if os.path.exists(package_json_path):
         package_info = json.load(f)
         __version__ = package_info.get("version", "unknown")
 
-from .LMStudioPromptEnhancerNode import LMStudioPromptEnhancerNode
-
 NODE_CLASS_MAPPINGS = {"LMStudioPromptEnhancer": LMStudioPromptEnhancerNode}
 
 NODE_DISPLAY_NAME_MAPPINGS = {"LMStudioPromptEnhancer": "LM Studio Prompt Enhancer"}

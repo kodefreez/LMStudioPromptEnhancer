@@ -1,5 +1,4 @@
 import os
-import random
 import sys
 import unittest
 from unittest.mock import MagicMock, patch
@@ -7,7 +6,7 @@ from unittest.mock import MagicMock, patch
 # Add the parent directory to the system path to allow imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from LMStudioPromptEnhancerNode import LMStudioPromptEnhancerNode, get_lmstudio_models
+from LMStudioPromptEnhancerNode import LMStudioPromptEnhancerNode
 
 
 class TestLMStudioPromptEnhancerNode(unittest.TestCase):
