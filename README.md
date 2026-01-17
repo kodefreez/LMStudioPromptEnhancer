@@ -79,6 +79,10 @@ The node constructs a detailed request for your local language model based on yo
 -   **LM Studio Endpoint:** The node defaults to `http://localhost:1234/v1/chat/completions`. If your LM Studio server is running on a different address or port, you can change this field.
 -   **Model Discovery & Refresh:** The node attempts to automatically discover available models from LM Studio when the workflow is loaded. If you load a new model in LM Studio while ComfyUI is running, you can use the `refresh_models` button on the node to update the `model_identifier` dropdown without needing to restart ComfyUI.
 
+-   **Safety & SFW/NSFW behavior:**
+    -   `prompt_tone`: When set to `SFW`, explicit/sexual pose options in the `People` subject are automatically blocked and ignored. When a user choice is blocked, the node returns a third output value `warnings` (a string) that contains messages describing what was blocked. To allow explicit content, set `prompt_tone` to `NSFW`.
+    -   **Example blocked poses:** `ass_on_heels`, `lifting_skirt`, `hand_on_inner_thigh`, `spread_kneeling`, `sultry_gaze`, `flirty sitting against wall`, `sitting_with_legs_spread`, `thighs_together`.
+
 The node constructs a detailed request for your local language model based on your inputs. The primary instruction is determined by the `blend_mode`, which tells the AI how to combine `Theme A` and `Theme B`. It then layers in details from the Mood Matrix, Chaos slider, and other settings. The final prompt structure (paragraph vs. tags) is determined by the `target_model`.
 
 ## Testing

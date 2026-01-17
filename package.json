@@ -3,5 +3,5 @@
     "version": "0.1.0",
     "description": "A node to enhance prompts using LMStudio.",
     "author": "",
-    "license": "MIT"
+    "license": "Apache-2.0"
 }

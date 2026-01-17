@@ -25,9 +25,23 @@ class LMStudioPromptEnhancerNode:
         "styles": ["in the style of a 1980s Trapper Keeper", "as a medieval tapestry", "as a blueprint diagram", "as a thermal camera image", "as a stained glass window", "in the style of ukiyo-e", "as a child's crayon drawing", "as a propaganda poster", "in the style of art deco", "as a pixel art sprite"]
     }
 
+    # Poses or options that are explicit/sexual in nature and should be blocked in SFW mode
+    EXPLICIT_POSES = {
+        "ass_on_heels",
+        "lifting_skirt",
+        "hand_on_inner_thigh",
+        "spread_kneeling",
+        "spread_kneeling (variant spelling: spread_kneeling)",
+        "sultry_gaze",
+        "flirty sitting against wall",
+        "sitting_with_legs_spread",
+        "thighs_together",
+    }
+
     @classmethod
     def INPUT_TYPES(s):
-        available_models = get_lmstudio_models()
+        # Avoid network IO during import: provide a safe placeholder list.
+        available_models = ["No models found"]
         return {
             "required": {
                 "enable_advanced_options": ("BOOLEAN", {"default": False}),
@@ -58,16 +72,43 @@ class LMStudioPromptEnhancerNode:
             }
         }
 
-    RETURN_TYPES = ("STRING", "STRING",)
-    RETURN_NAMES = ("positive_prompt", "negative_prompt",)
+    RETURN_TYPES = ("STRING", "STRING", "STRING")
+    RETURN_NAMES = ("positive_prompt", "negative_prompt", "warnings")
     FUNCTION = "generate_prompt"
     CATEGORY = "LMStudio"
 
     def __init__(self):
         self.last_generated_prompt = None
+        # Cached list of models discovered at runtime. Kept to avoid network IO at import.
+        self.available_models = ["No models found"]
+        # Last run warnings (list of strings)
+        self.last_warnings = []
+
+    def discover_models(self, lmstudio_base_url="http://localhost:1234"):
+        """Discover available models from LM Studio at runtime.
+        This avoids performing network IO at import time and can be triggered by the user via `refresh_models`.
+        """
+        try:
+            models = get_lmstudio_models()
+        except Exception:
+            models = ["No models found"]
+        self.available_models = models
+        return models
 
     def generate_prompt(self, enable_advanced_options, theme_a, theme_b, blend_mode, riff_on_last_output, creativity, seed, lmstudio_endpoint, refresh_models, model_identifier, negative_prompt="", style_preset="Cinematic", subject="Generic", target_model="Generic", prompt_tone="SFW", action_pose="", emotion_expression="", lighting="", framing="", chaos=0.0, mood_ancient_futuristic=0.0, mood_serene_chaotic=0.0, mood_organic_mechanical=0.0):
         
+        # Local warnings for this run
+        warnings = []
+
+        # Optionally refresh model list at runtime (no network IO at import)
+        if refresh_models:
+            self.discover_models()
+            if not model_identifier or model_identifier == "No models found":
+                if self.available_models and self.available_models[0]:
+                    model_identifier = self.available_models[0]
+            if model_identifier == "No models found":
+                warnings.append("No models found at LM Studio; model identifier could not be discovered.")
+
         # If riffing, use a completely different logic path
         if riff_on_last_output and self.last_generated_prompt:
             base_system_prompt = f"""You are a creative assistant for a text-to-image AI. Your task is to take the user's prompt and create a creative variation of it. 
@@ -79,7 +120,6 @@ Follow these rules:
 4.  **Avoid Clutter:** Do not include any meta-commentary. The output should only be the positive prompt itself.
 """
             user_message = f"The previous prompt was: \"{self.last_generated_prompt}\""
-
         else:
             # Normal generation logic
             blend_instructions = {
@@ -113,7 +153,15 @@ Follow these rules:
                 if subject == "People":
                     if action_pose == "random":
                         options = self.INPUT_TYPES()["optional"]["action_pose"][0]
-                        action_pose = random.choice([opt for opt in options if opt not in ["default", "random"]])
+                        choices = [opt for opt in options if opt not in ["default", "random"]]
+                        # When tone is SFW, filter out explicit poses
+                        if prompt_tone == "SFW":
+                            choices = [opt for opt in choices if opt not in self.EXPLICIT_POSES]
+                        if not choices:
+                            action_pose = "default"
+                            warnings.append("No non-explicit poses available for SFW tone; action_pose set to 'default'.")
+                        else:
+                            action_pose = random.choice(choices)
                     if emotion_expression == "random":
                         options = self.INPUT_TYPES()["optional"]["emotion_expression"][0]
                         emotion_expression = random.choice([opt for opt in options if opt not in ["default", "random"]])
@@ -124,6 +172,12 @@ Follow these rules:
                         options = self.INPUT_TYPES()["optional"]["framing"][0]
                         framing = random.choice([opt for opt in options if opt not in ["default", "random"]])
                     
+                    # If a user explicitly selected an explicit pose but the tone is SFW, ignore it
+                    if prompt_tone == "SFW" and action_pose in self.EXPLICIT_POSES:
+                        orig = action_pose
+                        action_pose = "default"
+                        warnings.append(f"Selected action pose '{orig}' was blocked because prompt_tone='SFW'.")
+
                     if action_pose and action_pose != "default":
                         user_message += f"\n- Action/Pose: '{action_pose}'"
                     if emotion_expression and emotion_expression != "default":
@@ -159,7 +213,6 @@ Follow these rules:
 
         # Common logic for both riff and normal generation
         system_prompt = base_system_prompt
-        user_message += f"\nTarget Model: '{target_model}'"
         user_message += f"\nPrompt Tone: '{prompt_tone}'"
 
         pony_tags = ""
@@ -167,7 +220,6 @@ Follow these rules:
             pony_tags = "score_9, score_8_up, score_7_up"
             if style_preset == "Anime":
                 pony_tags += ", source_anime"
-            user_message += f"\n(The following Pony tags will be automatically added: '{pony_tags}')"
 
         appended_style = ""
         if target_model in ["Generic", "Flux", "SDXL"]:
@@ -177,7 +229,6 @@ Follow these rules:
                 appended_style = photographic_style
             else:
                 appended_style = artistic_style
-            user_message += f"\n(The following style will be automatically appended: '{appended_style}')"
 
         headers = {"Content-Type": "application/json"}
         payload = {
@@ -201,18 +252,22 @@ Follow these rules:
             self.last_generated_prompt = generated_prompt
 
             if target_model == "Pony":
-                generated_prompt = f"{pony_tags}, {generated_prompt}"
+                generated_prompt = f"{pony_tags} {generated_prompt}"
 
             if target_model in ["Generic", "Flux", "SDXL"]:
-                generated_prompt = f"{generated_prompt}, {appended_style}"
+                generated_prompt = f"{generated_prompt} {appended_style}"
 
             generated_negative_prompt = negative_prompt
 
-            return (generated_prompt, generated_negative_prompt)
+            # Save warnings for external inspection
+            self.last_warnings = warnings
+            return (generated_prompt, generated_negative_prompt, "\n".join(warnings))
 
         except requests.exceptions.RequestException as e:
             error_message = f"API Error: Could not connect to LM Studio at {lmstudio_endpoint}. Please ensure it is running and the endpoint is correct. Details: {e}"
-            return (error_message, negative_prompt)
-        except (KeyError, IndexError) as e:
+            self.last_warnings = [error_message]
+            return (error_message, negative_prompt, error_message)
+        except (ValueError, KeyError, IndexError) as e:
             error_message = f"API Error: Received an unexpected response format from the API. Details: {e}"
-            return (error_message, negative_prompt)
+            self.last_warnings = [error_message]
+            return (error_message, negative_prompt, error_message)
